@@ -42,13 +42,6 @@ def send_welcome(message):
     bot.send_message(message.chat.id, "Ласкаво просимо! Оберіть команду з меню:", reply_markup=markup)
 
 
-# Команда /feedback для отримання відгуку
-@bot.message_handler(commands=['feedback'])
-def request_feedback(message):
-    bot.reply_to(message, "Будь ласка, залиште ваш відгук:")
-    user_feedback[message.from_user.id] = 'waiting_feedback'
-
-
 # Обробка введення користувачем відгуку
 @bot.message_handler(func=lambda message: user_feedback.get(message.from_user.id) == 'waiting_feedback')
 def handle_feedback(message):
@@ -63,12 +56,6 @@ def handle_feedback(message):
     bot.reply_to(message, "Дякуємо за ваш відгук! Ми його передали адміністраторам.")
 
 
-# Команда /hello для привітання
-@bot.message_handler(commands=['hello'])
-def say_hello(message):
-    bot.reply_to(message, f"Привіт, {message.from_user.first_name}! Раді вас бачити.")
-
-
 # Валідація введеної ціни
 def is_valid_price(price):
     try:
@@ -76,26 +63,6 @@ def is_valid_price(price):
         return price_value > 0  # Ціна повинна бути позитивним числом
     except ValueError:
         return False
-
-
-# Команда для адміністраторів: додати товар
-@bot.message_handler(commands=['add_item'])
-def add_item(message):
-    if message.from_user.id in admin_ids:
-        bot.send_message(message.chat.id, "Введіть назву товару:")
-        admin_add_item_state[message.from_user.id] = {'step': 'name'}
-    else:
-        bot.reply_to(message, "У вас немає прав для доступу до цієї функції.")
-
-
-# Команда для адміністраторів: видалити товар
-@bot.message_handler(commands=['remove_item'])
-def remove_item(message):
-    if message.from_user.id in admin_ids:
-        bot.send_message(message.chat.id, "Введіть назву товару, який хочете видалити:")
-        admin_add_item_state[message.from_user.id] = {'step': 'remove'}
-    else:
-        bot.reply_to(message, "У вас немає прав для доступу до цієї функції.")
 
 
 # Обробка додавання товару адміністратором
@@ -163,47 +130,6 @@ def callback_query(call):
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("Замовити", callback_data=f"order_{selected_product['name']}"))
             bot.send_message(call.message.chat.id, description, reply_markup=markup)
-
-    # Замовлення товару
-    elif call.data.startswith('order_'):
-        product_name = call.data.split('_')[1]
-        selected_product = next((p for p in products if p['name'] == product_name), None)
-
-        if selected_product:
-            if user_id not in orders:
-                orders[user_id] = []
-            orders[user_id].append(selected_product)
-            bot.send_message(call.message.chat.id,
-                             f"Додано до замовлення: {selected_product['name']} ({selected_product['price']})")
-
-
-# Оформлення замовлення
-@bot.message_handler(func=lambda message: message.text == 'Оформити замовлення')
-def order_button(message):
-    user_id = message.from_user.id
-
-    if user_id in orders and orders[user_id]:
-        total_price = 0
-        order_details = "Ваше замовлення:\n"
-        for product in orders[user_id]:
-            order_details += f"- {product['name']} ({product['price']})\n"
-            total_price += int(product['price'].split()[0])  # Витягаємо ціну
-        order_details += f"Загальна сума: {total_price} грн"
-
-        # Підтвердження замовлення
-        markup = InlineKeyboardMarkup()
-        confirm = InlineKeyboardButton("Підтвердити", callback_data='confirm_order')
-        markup.add(confirm)
-
-        bot.send_message(message.chat.id, order_details, reply_markup=markup)
-    else:
-        bot.send_message(message.chat.id, "Ваша корзина порожня. Будь ласка, додайте товари з каталогу.")
-
-
-# Підтвердження замовлення
-@bot.callback_query_handler(func=lambda call: call.data == 'confirm_order')
-def confirm_order(call):
-    bot.send_message(call.message.chat.id, "Дякуємо за ваше замовлення! Ваше замовлення підтверджено.")
 
 
 # Запуск бота
