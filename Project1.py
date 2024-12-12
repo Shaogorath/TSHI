@@ -6,7 +6,7 @@ API_TOKEN = '7319633029:AAE0FoLkdaPk-B3wH60zKxtQW4w9x0Xx6n8'  # Вставте �
 bot = telebot.TeleBot(API_TOKEN)
 
 # Адміністратори (ID)
-admin_ids = [745741800]  # Замініть на ID ваших адміністраторів
+admin_ids = [5533505581]  # Замініть на ID ваших адміністраторів
 
 # Каталог товарів
 products = [
@@ -34,12 +34,13 @@ def send_welcome(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add('/catalog', '/info', '/feedback', '/hello')
     markup.add('Оформити замовлення')
+    bot.send_message(message.chat.id, "Ласкаво просимо! Оберіть команду з меню:", reply_markup=markup)
 
     # Додаємо кнопки для адміністраторів, якщо це адміністратор
     if message.from_user.id in admin_ids:
         markup.add('/add_item', '/remove_item')
 
-    bot.send_message(message.chat.id, "Ласкаво просимо! Оберіть команду з меню:", reply_markup=markup)
+
 
 
 # Команда /feedback для отримання відгуку
@@ -68,6 +69,17 @@ def handle_feedback(message):
 def say_hello(message):
     bot.reply_to(message, f"Привіт, {message.from_user.first_name}! Раді вас бачити.")
 
+@bot.message_handler(commands=['info'])
+def send_info(message):
+    info_text = (
+        "Цей бот допомагає купувати продукти онлайн.\n\n"
+        "Доступні команди:\n"
+        "/start - почати роботу з ботом\n"
+        "/cart - переглянути вміст кошика\n"
+        "/order - оформити замовлення\n"
+        "/info - дізнатися більше про бота"
+    )
+    bot.send_message(message.chat.id, info_text)
 
 # Валідація введеної ціни
 def is_valid_price(price):
@@ -77,6 +89,14 @@ def is_valid_price(price):
     except ValueError:
         return False
 
+@bot.message_handler(commands=['admin'])
+def admin_panel(message):
+    # Перевіряємо, чи є користувач адміністратором
+    if message.from_user.id in admin_ids:
+        bot.send_message(message.chat.id, "Вітаю в адмінці! Ви маєте доступ до всіх функцій.")
+        # Тут можна додавати функції або повідомлення для адміністратора
+    else:
+        bot.send_message(message.chat.id, "У вас немає доступу до адмінки.")
 
 # Команда для адміністраторів: додати товар
 @bot.message_handler(commands=['add_item'])
@@ -204,6 +224,7 @@ def order_button(message):
 @bot.callback_query_handler(func=lambda call: call.data == 'confirm_order')
 def confirm_order(call):
     bot.send_message(call.message.chat.id, "Дякуємо за ваше замовлення! Ваше замовлення підтверджено.")
+
 
 
 # Запуск бота
